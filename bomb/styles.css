@@ -1,0 +1,241 @@
+  :root {
+    --left-margin: 200px;
+    --right-margin: 200px;
+  }
+
+  html,
+  body {
+    height: 100%;
+    margin: 0;
+    font-family: Segoe UI, system-ui, sans-serif;
+    background: #050606;
+    color: #ddd;
+  }
+
+  #setupScreen {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+  }
+
+  .setupCard {
+    width: 360px;
+    background: linear-gradient(180deg, #071012, #001219);
+    border: 2px solid rgba(0, 200, 200, 0.22);
+    padding: 20px 18px;
+    border-radius: 10px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
+  }
+
+  .setupCard h2 {
+    margin: 0 0 12px 0;
+    color: #0ff;
+    text-shadow: 0 0 8px rgba(0, 255, 255, 0.08);
+  }
+
+  .field {
+    margin: 8px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .field input[type="number"],
+  .field input[type="text"] {
+    padding: 8px;
+    border-radius: 6px;
+    background: #051a1a;
+    border: 1px solid rgba(0, 200, 200, 0.12);
+    color: #0ff;
+    text-align: center;
+  }
+
+  .row {
+    display: flex;
+    gap: 10px;
+  }
+
+  .row>* {
+    flex: 1;
+  }
+
+  button.primary {
+    width: 100%;
+    margin-top: 12px;
+    padding: 10px;
+    border-radius: 8px;
+    background: #00d1d1;
+    border: none;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  /* BombApp layout */
+  #bombAppContainer {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    display: none;
+  }
+
+  .side-background {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+    z-index: 0;
+  }
+
+  .left-bg {
+    left: 0;
+    width: var(--left-margin);
+    background-image: url('images/LeftMargin.png');
+  }
+
+  .right-bg {
+    right: 0;
+    width: var(--right-margin);
+    background-image: url('images/RightMargin.png');
+  }
+
+  #gridContainer {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: var(--left-margin);
+    right: var(--right-margin);
+    display: grid;
+    z-index: 2;
+    gap: 2px;
+    padding: 8px;
+    box-sizing: border-box;
+    align-content: stretch;
+    justify-content: stretch;
+  }
+
+  .zone {
+    background: #081214;
+    border: 1px solid rgba(0, 120, 120, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9ff;
+    font-weight: 700;
+    user-select: none;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+
+  .zone.timer {
+    background-size: 100% 100%;
+    background-position: center;
+    background-repeat: no-repeat;
+    color: #ff6666;
+  }
+
+  .timer-text {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Lucida Console", "Courier New", monospace;
+    letter-spacing: 6px;
+    /* BIG spacing = segmented feel */
+    transform: scaleY(1.2);
+    /* stretch vertically */
+    padding-left: 25px;
+    padding-top: 15px;
+    font-weight: bold;
+    color: red;
+    text-shadow:
+      0 0 4px #ff0000,
+      0 0 8px #990000,
+      0 0 16px #660000;
+    filter: contrast(1.2) brightness(1.2);
+    line-height: 1;
+    user-select: none;
+    width: 100%;
+    height: 100%;
+    min-height: 1em;
+    font-size: clamp(24px, 10vmin, 160px);
+    transform: translateZ(0);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* debug small label */
+  .label-small {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+
+  .rect {
+    position: absolute;
+    border: 2px solid #000;
+    box-sizing: border-box;
+  }
+
+  #preStartScreen.startScreen {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+    z-index: 1000;
+  }
+
+  .startButton {
+    min-width: 260px;
+    min-height: 120px;
+    padding: 24px 48px;
+    border-radius: 18px;
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    background: #111;
+    color: #fff;
+    font-size: 48px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    cursor: pointer;
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.08);
+  }
+
+  .startButton:hover {
+    background: #181818;
+  }
+
+  .explosionOverlay {
+    position: fixed;
+    inset: 0;
+    background: red;
+    z-index: 9999;
+  }
+
+
+  .explosionMessage {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6vw;
+    text-align: center;
+    color: #fff;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    font-size: clamp(32px, 6vw, 88px);
+    font-weight: 900;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    text-shadow: 0 0 12px rgba(0, 0, 0, 0.55);
+    z-index: 10000;
+    pointer-events: none;
+  }

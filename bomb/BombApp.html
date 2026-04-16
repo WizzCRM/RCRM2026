@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BombApp Setup</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <div id="setupScreen">
+    <div class="setupCard">
+      <h2>BombApp Setup</h2>
+      <div class="field">
+        <label>Rows</label>
+        <input id="rowsInput" type="number" min="2" max="10" value="3" />
+      </div>
+      <div class="field">
+        <label>Columns</label>
+        <input id="colsInput" type="number" min="2" max="12" value="4" />
+      </div>
+
+      <div class="field">
+        <label>Timer (seconds)</label>
+        <input id="timerInput" type="number" min="0" max="3600" value="900" />
+      </div>
+
+      <div class="field row">
+        <label style="display:flex;align-items:center;gap:8px"><input id="debugOption" type="checkbox" /> Debug</label>
+        <label style="display:flex;align-items:center;gap:8px"><input id="soundOption" type="checkbox" checked="true" />
+          Use Sounds</label>
+
+      </div>
+
+
+      <button id="startBtn" class="primary">Build the bomb</button>
+    </div>
+  </div>
+
+
+  <div id="preStartScreen" class="startScreen" style="display:none;">
+    <button id="armBtn" class="startButton">Start</button>
+  </div>
+
+  <div id="bombAppContainer"></div>
+
+
+  <script>
+
+    // bombApp.js
+    // ES6 BombApp + Zones + SoundManager
+
+    /* ========== SoundManager (singleton) ========== */
+    class SoundManager {
+      static instance;
+      static getInstance() {
+        if (!SoundManager.instance) SoundManager.instance = new SoundManager();
+        return SoundManager.instance;
+      }
+      constructor() {
+        this.ctx = null;
+        this.soundsOn = true;
+      }
+      _ensureCtx() {
+        if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        return this.ctx;
+      }
+      playTone({ freq = 440, duration = 0.1, gain = 0.05, type = 'sine' } = {}) {
+        try {
+          const ctx = this._ensureCtx();
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.type = type;
+          o.frequency.setValueAtTime(freq, ctx.currentTime);
+          g.gain.setValueAtTime(gain, ctx.currentTime);
+          o.connect(g);
+          g.connect(ctx.destination);
+          o.start();
+          o.stop(ctx.currentTime + duration);
+          g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration + 0.02);
+        } catch (e) { console.warn('sound failed', e); }
+      }
+      playTick() { if (this.soundsOn) this.playTone({ freq: 880, duration: 0.04, gain: 0.04, type: 'square' }); }
+      playReject() { if (this.soundsOn) this.playTone({ freq: 200, duration: 0.4, gain: 0.9, type: 'square' }); }
+      playExplosion() { if (this.soundsOn) this.playTone({ freq: 60, duration: 1.0, gain: 0.8, type: 'sine' }); }
+    }
+
+    /* ========== Utilities ========== */
+    class Quadrant {
+      constructor(x1, y1, x2, y2) { this.x1 = x1; this.y1 = y1; this.x2 = x2; this.y2 = y2; }
+      contains(px, py) { return px >= this.x1 && px <= this.x2 && py >= this.y1 && py <= this.y2; }
+    }
+
+    /* ========== Base Zone (default inert & disarmed) ========== */
+    class Zone {
+      constructor(row, col, config, app) {
+        this.row = row;
+        this.col = col;
+        this.config = config;
+        this.app = app;
+        this.disarmed = true;
+        this.element = document.createElement('div');
+        this.element.classList.add('zone');
+        if (app && app.opts && app.opts.debug) {
+          const lbl = document.createElement('div');
+          lbl.className = 'label-small';
+          lbl.textContent = `${row},${col}`;
+          this.element.appendChild(lbl);
+        }
+        this.element.addEventListener('click', (e) => this.clicked(e));
+      }
+      resize() { }
+      clicked(evt) { }
+      isDisarmed() { return !!this.disarmed; }
+      setDisarmed(v) { this.disarmed = !!v; }
+      setBackground(url) {
+        if (!url) {
+          this.element.style.backgroundImage = '';
+        } else {
+          this.element.style.backgroundImage = `url('${url}')`;
+          this.element.style.backgroundSize = '100% 100%';
+          this.element.style.backgroundPosition = 'center';
+          this.element.style.backgroundRepeat = 'no-repeat';
+        }
+      }
+    }
+
+    /* ========== Wire base ========== */
+    class WireZone extends Zone {
+      constructor(row, col, config, app) {
+        super(row, col, config, app);
+        this.imageName = 'Cover';
+        this.cover = true;
+        this.clickZones = [];
+        for (let i = 0; i < 7; i++) {
+          this.clickZones.push(new Quadrant(34, 33 + i * 8.5, 70, 33 + (i + 1) * 8.5));
+        }
+        this.WireType = 0;
+        this.correctWire = [];
+        this.setDisarmed(false);
+        this.render();
+      }
+      render() {
+        this.setBackground('images/Cover.png');
+        this.element.style.display = 'flex';
+        this.element.style.alignItems = 'center';
+        this.element.style.justifyContent = 'center';
+        if (this.app.opts.debug) this.element.textContent = 'WireZone';
+      }
+      revealImmediately() {
+        this.cover = false;
+        this.setBackground(`images/${this.imageName}.png`);
+      }
+      resize() { }
+      clicked(evt) {
+        const sm = SoundManager.getInstance();
+
+        if (this.cover) {
+          this.cover = false;
+          this.setBackground(`images/${this.imageName}.png`);
+          if (this.onClicked) this.onClicked(this, evt, true);
+          return;
+        }
+
+        const r = this.element.getBoundingClientRect();
+        const x = evt.clientX - r.left;
+        const y = evt.clientY - r.top;
+        const px = (x / r.width) * 100;
+        const py = (y / r.height) * 100;
+
+        for (const cz of this.clickZones) {
+          if (cz.contains(px, py)) {
+            if (this.app.opts.debug) {
+              console.log(`Clicked on wire in zone #: ${this.clickZones.indexOf(cz)}`);
+            }
+
+            if (this.clickZones.indexOf(cz) !== this.disarmingClickZone) {
+              this.app.config.destroyed = true;
+              sm.playReject();
+            } else {
+              this.setBackground(`images/${this.imageName}c.png`);
+              this.setDisarmed(true);
+              sm.playTick();
+            }
+            break;
+          }
+        }
+
+        if (this.onClicked) this.onClicked(this, evt);
+      }
+    }
+
+    class Wire3Zone extends WireZone {
+      constructor(r, c, config, app) {
+        super(r, c, config, app);
+        this.WireType = 1 + Math.floor(Math.random() * 4);
+        this.correctWire = [0, 3, 3, 5, 5];
+        this.imageName = 'Wired3' + this.WireType;
+        this.disarmingClickZone = this.correctWire[this.WireType];
+        this.revealImmediately();
+        if (this.app.opts.debug) this.element.textContent = 'Wire3 Cut #' + (this.disarmingClickZone + 1);
+      }
+    }
+
+    class Wire4Zone extends WireZone {
+      constructor(r, c, config, app) {
+        super(r, c, config, app);
+        this.WireType = 0;
+        this.correctWire = [0];
+        this.imageName = 'Wired4' + config.interface;
+
+        switch (config.interface) {
+          case 'c': this.disarmingClickZone = 2; break;
+          case 'd': this.disarmingClickZone = 0; break;
+          case 'm': this.disarmingClickZone = 6; break;
+          case 'r': this.disarmingClickZone = 0; break;
+        }
+
+        this.revealImmediately();
+        if (this.app.opts.debug) this.element.textContent = 'Wire4 Cut #' + (this.disarmingClickZone + 1);
+      }
+    }
+
+    class Wire5Zone extends WireZone {
+      constructor(r, c, config, app) {
+        super(r, c, config, app);
+        this.WireType = 1 + Math.floor(Math.random() * 5);
+        this.correctWire = [0, 1, 6, 6, 1, 2, 4];
+        this.imageName = 'Wired5' + this.WireType;
+        this.disarmingClickZone = this.correctWire[this.WireType];
+        this.revealImmediately();
+        if (this.app.opts.debug) this.element.textContent = 'Wire5 Cut #' + (this.disarmingClickZone + 1);
+      }
+    }
+
+    /* ========== CodeZone subtracts time from shared config and disarms ========== */
+    class CodeZone extends Zone {
+      constructor(r, c, config, app) {
+        super(r, c, config, app);
+        this.lettersType = ['A', 'B', 'C', 'D'];
+        this.correctcode = {
+          'A': [4, 8, 5],
+          'B': [2, 7, 4],
+          'C': [2, 11, 3],
+          'D': [1, 6, 4]
+        };
+        this.codeStep = 0;
+        this.CodeType = Math.floor(Math.random() * this.lettersType.length);
+
+        this.setBackground('images/Keypad' + this.lettersType[this.CodeType] + this.codeStep + '.png');
+        this.setDisarmed(false);
+        if (this.app.opts.debug) this.element.textContent = 'CODE ' + this.correctcode[this.lettersType[this.CodeType]].join(',');
+      }
+      clicked(evt) {
+        const sm = SoundManager.getInstance();
+
+        const r = this.element.getBoundingClientRect();
+        const x = evt.clientX - r.left;
+        const y = evt.clientY - r.top;
+        const px = (x / r.width) * 100;
+        const py = (y / r.height) * 100;
+
+        const keyboardQuadrant = new Quadrant(20, 46, 71, 94);
+
+        if (!keyboardQuadrant.contains(px, py)) {
+          if (this.app.opts.debug) console.log('Clicked outside keypad area - ignored');
+          if (this.onClicked) this.onClicked(this, evt);
+          return;
+        }
+
+        let column = Math.floor((px - keyboardQuadrant.x1) / (keyboardQuadrant.x2 - keyboardQuadrant.x1) * 4);
+        let row = Math.floor((py - keyboardQuadrant.y1) / (keyboardQuadrant.y2 - keyboardQuadrant.y1) * 3);
+        let keyNumber = column + row * 4;
+
+        if (keyNumber == this.correctcode[this.lettersType[this.CodeType]][this.codeStep]) {
+          if (this.codeStep < this.correctcode[this.lettersType[this.CodeType]].length) this.codeStep++;
+          if (this.codeStep >= this.correctcode[this.lettersType[this.CodeType]].length) this.setDisarmed(true);
+          sm.playTick();
+        } else {
+          this.codeStep = 0;
+          this.config.remainingTime = Math.max(1, (this.config.remainingTime || 0) - 30);
+          sm.playReject();
+        }
+
+        this.setBackground('images/Keypad' + this.lettersType[this.CodeType] + this.codeStep + '.png');
+        if (this.onClicked) this.onClicked(this, evt);
+      }
+    }
+
+    /* ========== TimerZone uses shared config.remainingTime ========== */
+    class TimerZone extends Zone {
+      constructor(r, c, config, app) {
+        super(r, c, config, app);
+        this.element.classList.add('timer');
+        this.element.innerHTML = `<div class="timer-text">${this._format(config.remainingTime || 0)}</div>`;
+        this.textEl = this.element.querySelector('.timer-text');
+        this.running = false;
+        this.setBackground('images/Timer.png');
+        this._startInterval();
+        this._scheduleResponsiveResize();
+      }
+      _format(s) {
+        const m = Math.floor(s / 60).toString().padStart(2, '0');
+        const sec = (s % 60).toString().padStart(2, '0');
+        return `${m}:${sec}`;
+      }
+      _startInterval() {
+        const sm = SoundManager.getInstance();
+        this._interval = setInterval(() => {
+          if (this.config.destroyed) {
+            clearInterval(this._interval);
+            return;
+          }
+          if (!this.running) return;
+
+          if (this.config.remainingTime > 0) {
+            this.config.remainingTime--;
+            sm.playTick();
+            if (this.textEl) this.textEl.textContent = this._format(this.config.remainingTime);
+            if (this.config.remainingTime === 0) {
+              clearInterval(this._interval);
+              this.running = false;
+              if (this.app.onTimerExpired) this.app.onTimerExpired();
+            }
+          }
+        }, 1000);
+      }
+      resize() {
+        this._applyResponsiveTextSize();
+      }
+      _applyResponsiveTextSize() {
+        if (!this.textEl) return;
+        const rect = this.element.getBoundingClientRect();
+        const base = Math.min(rect.width || 0, rect.height || 0);
+        if (!base) return;
+        const size = Math.max(24, Math.min(160, base * 0.16));
+        this.textEl.style.fontSize = `${size}px`;
+      }
+      _scheduleResponsiveResize() {
+        window.requestAnimationFrame(() => {
+          this._applyResponsiveTextSize();
+          window.requestAnimationFrame(() => this._applyResponsiveTextSize());
+        });
+      }
+      clicked(evt) {
+        if (this.app.opts.debug) this.running = !this.running;
+        if (this.onClicked) this.onClicked(this, evt);
+      }
+      destroy() {
+        if (this._interval) clearInterval(this._interval);
+      }
+    }
+
+    /* ========== Serial & Border zones ========== */
+    class Serial1Zone extends Zone {
+      constructor(r, c, config, app) {
+        super(r, c, config, app);
+        this.setBackground('images/Serial1' + app.config.country + '0.png');
+        if (this.app.opts.debug) this.element.textContent = 'Country ' + app.config.country;
+      }
+    }
+    class Serial2Zone extends Zone {
+      constructor(r, c, config, app) {
+        super(r, c, config, app);
+        this.setBackground('images/Serial2' + app.config.interface + '.png');
+        if (this.app.opts.debug) this.element.textContent = 'Interface ' + app.config.interface;
+      }
+    }
+    class BorderZone extends Zone {
+      constructor(r, c, config, app) {
+        super(r, c, config, app);
+        this.setBackground('images/Cover.png');
+      }
+    }
+
+    /* ========== ZoneFactory ========== */
+    class ZoneFactory {
+      constructor(typeList) {
+        this.registry = new Map();
+        for (const cls of typeList) this.registry.set(cls.name, cls);
+      }
+      create(typeName, r, c, config, app) {
+        if (typeName && this.registry.has(typeName)) {
+          const C = this.registry.get(typeName);
+          return new C(r, c, config, app);
+        }
+        const random = this.registry.get('Zone') || Zone;
+        return new random(r, c, config, app);
+      }
+    }
+
+    /* ========== BombApp (main) ========== */
+    class BombApp {
+      constructor(opts = {}) {
+        const defaults = {
+          rows: 3, cols: 4, timerVal: 900,
+          marginLeft: 200, marginRight: 200, debug: false,
+          specificZonesMap: {}, uniqueZonesList: [], zoneTypesList: [], playableZoneTypesList: []
+        };
+        this.opts = Object.assign({}, defaults, opts);
+        this.config = {
+          remainingTime: this.opts.timerVal || 0,
+          destroyed: false
+        };
+        this.exploding = false;
+
+        const interfaces = ['c', 'd', 'm', 'r'];
+        this.config.interface = interfaces[Math.floor(Math.random() * interfaces.length)];
+        const countries = ['b', 'g', 'k'];
+        this.config.country = countries[Math.floor(Math.random() * countries.length)];
+
+        this.container = document.getElementById('bombAppContainer');
+        this.container.innerHTML = '';
+        this.container.style.display = 'block';
+
+        document.documentElement.style.setProperty('--left-margin', `${this.opts.marginLeft}px`);
+        document.documentElement.style.setProperty('--right-margin', `${this.opts.marginRight}px`);
+
+        this.leftBg = document.createElement('div');
+        this.leftBg.className = 'side-background left-bg';
+        this.rightBg = document.createElement('div');
+        this.rightBg.className = 'side-background right-bg';
+        this.container.appendChild(this.leftBg);
+        this.container.appendChild(this.rightBg);
+
+        this.gridEl = document.createElement('div');
+        this.gridEl.id = 'gridContainer';
+        this.container.appendChild(this.gridEl);
+
+        const allTypes = (this.opts.zoneTypesList || []).slice();
+        allTypes.unshift(Zone);
+        this.factory = new ZoneFactory(allTypes);
+
+        this.specificZonesMap = this.opts.specificZonesMap || {};
+        this.uniqueZonesList = this.opts.uniqueZonesList || [];
+        this.playableZoneTypesList = this.opts.playableZoneTypesList && this.opts.playableZoneTypesList.length
+          ? this.opts.playableZoneTypesList : this.opts.zoneTypesList;
+
+        this._buildGrid();
+        this._resizeHandler = () => this._onResize();
+        this._fullscreenHandler = () => this._forceLayoutRefresh();
+        window.addEventListener('resize', this._resizeHandler);
+        document.addEventListener('fullscreenchange', this._fullscreenHandler);
+        document.addEventListener('webkitfullscreenchange', this._fullscreenHandler);
+        this._onResize();
+        this._forceLayoutRefresh();
+      }
+
+      parsePosition(token, max) {
+        token = (token || '').trim();
+        if (token === '') return 'ALL';
+        if (/^lastRow/i.test(token) || /^lastCol/i.test(token)) {
+          const parts = token.split('-');
+          const off = parseInt(parts[1], 10) || 0;
+          let val = max - 1 - off;
+          if (val < 0) val = 0;
+          if (val >= max) val = max - 1;
+          return val;
+        }
+        if (!isNaN(parseInt(token, 10))) {
+          let val = parseInt(token, 10);
+          if (val < 0) val = 0;
+          if (val >= max) val = max - 1;
+          return val;
+        }
+        console.warn('Unknown token in parsePosition:', token);
+        return 0;
+      }
+
+      cellMatchesKey(r, c, key) {
+        const parts = (key || '').split(',');
+        const rowKey = parts[0] || '';
+        const colKey = parts[1] || '';
+        const rowVal = this.parsePosition(rowKey, this.opts.rows);
+        const colVal = this.parsePosition(colKey, this.opts.cols);
+        return (rowVal === 'ALL' || rowVal === r) && (colVal === 'ALL' || colVal === c);
+      }
+
+      _buildGrid() {
+        const rows = this.opts.rows;
+        const cols = this.opts.cols;
+        this.grid = Array.from({ length: rows }, () => Array(cols).fill(null));
+
+        this.gridEl.innerHTML = '';
+        this.gridEl.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+        this.gridEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
+        const keys = Object.keys(this.specificZonesMap || {}).reverse();
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            for (const key of keys) {
+              if (this.cellMatchesKey(r, c, key)) {
+                const typeName = this.specificZonesMap[key];
+                const zone = this._createAndPlace(typeName, r, c);
+                this.grid[r][c] = zone;
+                break;
+              }
+            }
+          }
+        }
+
+        const free = [];
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            if (!this.grid[r][c]) free.push({ r, c });
+          }
+        }
+
+        const uniques = (this.uniqueZonesList || []).slice();
+        for (const U of uniques) {
+          if (free.length === 0) throw new Error('Not enough free slots for unique zones');
+          const idx = Math.floor(Math.random() * free.length);
+          const pos = free.splice(idx, 1)[0];
+          const zone = this._createAndPlace(U.name, pos.r, pos.c);
+          this.grid[pos.r][pos.c] = zone;
+        }
+
+        const pool = (this.playableZoneTypesList || []);
+        for (const p of free) {
+          const cls = pool[Math.floor(Math.random() * pool.length)];
+          const zone = this._createAndPlace(cls.name, p.r, p.c);
+          this.grid[p.r][p.c] = zone;
+        }
+
+        this.zones = [];
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const z = this.grid[r][c];
+            if (z) {
+              this.gridEl.appendChild(z.element);
+              this.zones.push(z);
+            }
+          }
+        }
+      }
+
+      _createAndPlace(typeName, r, c) {
+        const zone = this.factory.create(typeName, r, c, this.config, this);
+        if (zone && typeName === 'TimerZone') this.timerZone = zone;
+
+        zone.onClicked = (zoneInstance, evt, alertOnDisarm = false) => {
+          if (alertOnDisarm) this.onTimerStarted(zoneInstance);
+          this.checkAllDisarmed();
+          if (this.config.destroyed && this.onDestroyed) this.onDestroyed();
+        };
+
+        zone.element.dataset.rc = `${r},${c}`;
+        return zone;
+      }
+
+      _onResize() {
+        document.documentElement.style.setProperty('--left-margin', `${this.opts.marginLeft}px`);
+        document.documentElement.style.setProperty('--right-margin', `${this.opts.marginRight}px`);
+        for (const zone of this.zones) {
+          if (zone.resize) zone.resize();
+        }
+      }
+
+      _forceLayoutRefresh() {
+        window.requestAnimationFrame(() => {
+          this._onResize();
+          window.requestAnimationFrame(() => this._onResize());
+        });
+      }
+
+      startGame() {
+        this._forceLayoutRefresh();
+        if (this.timerZone) {
+          if (this.timerZone._scheduleResponsiveResize) this.timerZone._scheduleResponsiveResize();
+          this.timerZone.running = true;
+        }
+      }
+
+      checkAllDisarmed() {
+        const all = this.zones.every(z => !!z.isDisarmed && z.isDisarmed());
+        if (all && !this.config.destroyed) {
+          if (this.timerZone) this.timerZone.running = false;
+          if (this.onAllDisarmed) this.onAllDisarmed();
+        }
+      }
+
+      onTimerStarted(zone) {
+        if (this.timerZone) this.timerZone.running = true;
+      }
+
+      _explodeAndRestart() {
+        if (this.exploding) return;
+        this.exploding = true;
+
+        if (this.timerZone) this.timerZone.running = false;
+        SoundManager.getInstance().playExplosion();
+
+        const overlay = document.createElement('div');
+        overlay.className = 'explosionOverlay';
+
+        const message = document.createElement('div');
+        message.className = 'explosionMessage';
+        const explosionTexts = this.opts.explosionTexts && this.opts.explosionTexts.length
+          ? this.opts.explosionTexts
+          : [''];
+        message.textContent = explosionTexts[explosionTextIndex % explosionTexts.length];
+        explosionTextIndex++;
+        overlay.appendChild(message);
+        document.body.appendChild(overlay);
+
+        window.setTimeout(() => {
+          overlay.remove();
+          if (typeof this.opts.onRestartRequested === 'function') {
+            this.opts.onRestartRequested();
+          }
+        }, 3200);
+      }
+
+      onTimerExpired() {
+        if (this.config.destroyed) return;
+        this.config.destroyed = true;
+        this._explodeAndRestart();
+      }
+
+      onDestroyed() {
+        if (this.config.destroyed) this._explodeAndRestart();
+      }
+
+      destroy() {
+        if (this.timerZone && this.timerZone.destroy) this.timerZone.destroy();
+        window.removeEventListener('resize', this._resizeHandler);
+        document.removeEventListener('fullscreenchange', this._fullscreenHandler);
+        document.removeEventListener('webkitfullscreenchange', this._fullscreenHandler);
+        this.container.innerHTML = '';
+      }
+    }
+
+    /* ========== bootstrap / game flow ========== */
+    let currentApp = null;
+    let currentGameSettings = null;
+    let explosionTextIndex = 0;
+    function buildGameSettingsFromUI() {
+      let rows = parseInt(document.getElementById('rowsInput').value, 10) || 3;
+      let cols = parseInt(document.getElementById('colsInput').value, 10) || 4;
+      const timer = parseInt(document.getElementById('timerInput').value, 10) || 0;
+      const debug = document.getElementById('debugOption').checked;
+      const sound = document.getElementById('soundOption').checked;
+
+      const zoneTypesList = [Zone, Wire3Zone, Wire4Zone, Wire5Zone, CodeZone, TimerZone, Serial1Zone, Serial2Zone, BorderZone];
+      const playableZoneTypesList = [BorderZone, Wire5Zone, Wire4Zone, Wire3Zone];
+      const uniqueZonesList = [Serial1Zone, Serial2Zone, CodeZone, Wire5Zone, Wire4Zone, Wire3Zone, BorderZone, BorderZone, BorderZone, BorderZone, BorderZone];
+      const specificZonesMap = {};
+
+      if (cols > 4) specificZonesMap[',lastCol'] = 'BorderZone';
+      if (rows > 5) specificZonesMap['lastRow,'] = 'BorderZone';
+
+      if (cols <= 4 && rows <= 5 && timer > 0) {
+        specificZonesMap['lastRow,lastCol'] = 'TimerZone';
+      } else {
+        uniqueZonesList.push(TimerZone);
+      }
+
+      if (rows * cols < 11) alert('Too few zones for unique types! Adjusting...');
+      rows = Math.max(rows, 3);
+      cols = Math.max(cols, 4);
+
+      return {
+        rows,
+        cols,
+        timerVal: timer,
+        debug,
+        sound,
+        specificZonesMap,
+        uniqueZonesList,
+        zoneTypesList,
+        playableZoneTypesList
+      };
+    }
+
+    function showStartScreen() {
+      const container = document.getElementById('bombAppContainer');
+      const preStart = document.getElementById('preStartScreen');
+      container.style.display = 'none';
+      preStart.style.display = 'flex';
+    }
+
+    function hideStartScreenAndRun() {
+      const container = document.getElementById('bombAppContainer');
+      const preStart = document.getElementById('preStartScreen');
+      preStart.style.display = 'none';
+      container.style.display = 'block';
+      if (currentApp) currentApp.startGame();
+    }
+
+    function createBombFromSettings(settings) {
+      if (currentApp) currentApp.destroy();
+
+      SoundManager.getInstance().soundsOn = !!settings.sound;
+
+      currentApp = new BombApp({
+        rows: settings.rows,
+        cols: settings.cols,
+        timerVal: settings.timerVal,
+        debug: settings.debug,
+        specificZonesMap: settings.specificZonesMap,
+        uniqueZonesList: settings.uniqueZonesList,
+        zoneTypesList: settings.zoneTypesList,
+        playableZoneTypesList: settings.playableZoneTypesList,
+        explosionTexts: ['Congratulations! You found a way that doesn\'t work!', 'Maybe it was the orange wire!', 'Are you sure you know what you\'re doing?', 'Phew, that was close! You almost made it alive'],
+        onRestartRequested: () => {
+          createBombFromSettings(currentGameSettings);
+          showStartScreen();
+        }
+      });
+
+      showStartScreen();
+    }
+
+    function START() {
+      currentGameSettings = buildGameSettingsFromUI();
+
+      const setup = document.getElementById('setupScreen');
+      if (setup) setup.style.display = 'none';
+
+      createBombFromSettings(currentGameSettings);
+    }
+
+    document.getElementById('startBtn').addEventListener('click', START);
+    document.getElementById('armBtn').addEventListener('click', hideStartScreenAndRun);
+
+  </script>
+
+</body>
+
+</html>
