@@ -1,0 +1,1064 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stress Knowledge Test</title>
+  <style>
+    :root {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: #0f1115;
+      color: #e8eaf0;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      background: rgba(15, 17, 21, 0.92);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .btn {
+      appearance: none;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.06);
+      color: #e8eaf0;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-weight: 600;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 120ms ease, background 120ms ease;
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+      background: rgba(255, 255, 255, 0.10);
+    }
+
+    .btn.ghost {
+      opacity: 0.75;
+    }
+
+    .timer {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .timer .label {
+      opacity: 0.7;
+      font-size: 12px;
+    }
+
+    .timer .value {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+    }
+
+    .timer.low {
+      color: #ffcc66;
+    }
+
+    .timer.verylow {
+      color: #ff6b6b;
+    }
+
+    main {
+      padding: 12px 12px 96px;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    .profileRow {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      margin-bottom: 12px;
+    }
+
+    select {
+      background: rgba(255, 255, 255, 0.06);
+      color: #e8eaf0;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 8px 10px;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+
+    .q {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      margin: 10px 0;
+      padding: 12px;
+    }
+
+    .qHeader {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .qTitle {
+      font-weight: 900;
+      opacity: 0.85;
+    }
+
+    .qActions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .miniBtn {
+      font-size: 12px;
+      padding: 8px 10px;
+      border-radius: 10px;
+    }
+
+    .statusPill {
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.05);
+      opacity: 0.85;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .statusPill.answered {
+      border-color: rgba(90, 255, 180, 0.25);
+    }
+
+    .statusPill.locked {
+      border-color: rgba(255, 120, 120, 0.25);
+    }
+
+    .qTextWrap {
+      position: relative;
+      min-height: 24px;
+    }
+
+    .qText {
+      font-size: 16px;
+      line-height: 1.35;
+      font-weight: 750;
+      transition: opacity 240ms ease;
+    }
+
+    .qText.fadingOut {
+      opacity: 0;
+    }
+
+    .qText.fadingIn {
+      opacity: 1;
+    }
+
+    .disclaimer {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(255, 206, 86, 0.07);
+      border: 1px solid rgba(255, 206, 86, 0.18);
+      font-size: 12px;
+      line-height: 1.35;
+      opacity: 0.95;
+    }
+
+    .answers {
+      margin-top: 10px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .answer {
+      display: grid;
+      grid-template-columns: 20px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .answer input {
+      transform: scale(1.1);
+    }
+
+    .answer .x {
+      font-weight: 900;
+      color: #ff4d4d;
+      opacity: 0;
+      margin-left: 8px;
+    }
+
+    .answer.showX .x {
+      opacity: 1;
+    }
+
+    .answer.locked {
+      opacity: 0.70;
+    }
+
+    .answer .txt {
+      font-size: 14px;
+      line-height: 1.25;
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 2px solid rgba(255, 255, 255, 0.18);
+      border-top-color: rgba(255, 255, 255, 0.8);
+      animation: spin 0.9s linear infinite;
+      display: none;
+    }
+
+    .spinner.on {
+      display: inline-block;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .toastHost {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 18px;
+      display: flex;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    .toast {
+      pointer-events: none;
+      background: rgba(20, 22, 28, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      color: #e8eaf0;
+      padding: 10px 12px;
+      border-radius: 12px;
+      max-width: min(560px, calc(100% - 24px));
+      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.35);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 220ms ease, transform 220ms ease;
+      font-size: 13px;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .submitBar {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 12px;
+      background: rgba(15, 17, 21, 0.92);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      z-index: 20;
+    }
+
+    .submitInner {
+      max-width: 860px;
+      margin: 0 auto;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .submitBtn {
+      flex: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 15px;
+      padding: 12px 14px;
+    }
+
+    .submitMeta {
+      font-size: 12px;
+      opacity: 0.7;
+      white-space: nowrap;
+    }
+
+    .submitSpinner {
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 2px solid rgba(255, 255, 255, 0.18);
+      border-top-color: rgba(255, 255, 255, 0.85);
+      animation: spin 0.9s linear infinite;
+      display: none;
+    }
+
+    .submitSpinner.on {
+      display: inline-block;
+    }
+
+    /* Question text flash container */
+    .qTextWrap.flash {
+      animation: qFlash 1420ms ease-out;
+    }
+
+    /* Optional stronger variant (for extreme profile later) */
+    .qTextWrap.flash-strong {
+      animation: qFlashStrong 1520ms ease-out;
+    }
+
+    @keyframes qFlash {
+      0% {
+        background: rgba(255, 80, 80, 0.35);
+      }
+
+      30% {
+        background: rgba(255, 80, 80, 0.25);
+      }
+
+      100% {
+        background: transparent;
+      }
+    }
+
+    @keyframes qFlashStrong {
+      0% {
+        background: rgba(255, 60, 60, 0.55);
+      }
+
+      40% {
+        background: rgba(255, 60, 60, 0.35);
+      }
+
+      100% {
+        background: transparent;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <button id="backBtn" class="btn">Back</button>
+
+    <div id="timer" class="timer">
+      <div class="label">Time remaining</div>
+      <div id="timerValue" class="value">05:00</div>
+    </div>
+
+    <button id="noopBtn" class="btn ghost">Menu</button>
+  </header>
+
+  <main>
+    <div class="profileRow" style="visibility: hidden;">
+      <div style="display:flex; flex-direction:column; gap:2px;">
+        <div style="font-weight:900;">Stress Profile</div>
+        <div style="opacity:0.7; font-size:12px;">Randomized stressors (clean/light/moderate/extreme)</div>
+      </div>
+      <select id="profileSelect">
+        <option value="clean">clean</option>
+        <option value="light">light</option>
+        <option value="moderate">moderate</option>
+        <option value="extreme" selected>extreme</option>
+      </select>
+    </div>
+
+    <div id="questions"></div>
+  </main>
+
+  <div class="toastHost">
+    <div id="toast" class="toast"></div>
+  </div>
+
+  <div class="submitBar">
+    <div class="submitInner">
+      <button id="submitBtn" class="btn submitBtn">
+        <span class="submitSpinner" id="submitSpinner"></span>
+        <span id="submitLabel">Submit</span>
+      </button>
+      <div class="submitMeta" id="submitMeta">Not submitted</div>
+    </div>
+  </div>
+  <script>
+    /** ---------------------------
+     *  JSON CONFIG (EDIT THIS)
+     *  ---------------------------
+     * Each question requires:
+     *  - id
+     *  - question_text
+     *  - replaced_question_text
+     *  - answers: { "A": "...", "B": "...", ... }  (single-choice)
+     *  - correct: "A" (single option key)
+     */
+    const QUESTION_DATA = [
+      {
+        id: "q1",
+        question_text: "Which of the following is the best definition of stress?",
+        replaced_question_text: "Which of the following is the least accurate definition of stress?",
+        answers: {
+          A: "A disease caused by negative emotions",
+          B: "A physical and psychological response to perceived challenges or threats",
+          C: "A feeling of tiredness after work"
+        },
+        correct: "B"
+      },
+      {
+        id: "q2",
+        question_text: "Which hormone is most commonly associated with the stress response?",
+        replaced_question_text: "Which hormone is most commonly mistaken as being responsible for the stress response?",
+        answers: {
+          A: "Insulin",
+          B: "Cortisol",
+          C: "Serotonin"
+        },
+        correct: "B"
+      },
+      {
+        id: "q3",
+        question_text: "What is the primary function of the \"fight or flight\" response?",
+        replaced_question_text: "What is the primary long-term function of the \"fight or flight\" response?",
+        answers: {
+          A: "To make you feel calm",
+          B: "To prepare the body to face or escape danger",
+          C: "To improve digestion"
+        },
+        correct: "B"
+      },
+      {
+        id: "q4",
+        question_text: "Which of these is NOT a common symptom of chronic stress?",
+        replaced_question_text: "Which of these is least likely to occur during prolonged stress?",
+        answers: {
+          A: "Increased blood pressure",
+          B: "Improved memory",
+          C: "Sleep disturbances"
+        },
+        correct: "B"
+      },
+      {
+        id: "q5",
+        question_text: "Which statement about stress is TRUE?",
+        replaced_question_text: "Which statement about stress is most accurate in all situations?",
+        answers: {
+          A: "Stress is always harmful",
+          B: "Stress can sometimes improve performance",
+          C: "Stress only affects mental health, not physical health"
+        },
+        correct: "B"
+      },
+      {
+        id: "q6",
+        question_text: "Which technique is scientifically proven to reduce stress?",
+        replaced_question_text: "Which technique is most consistently supported by scientific evidence for stress reduction?",
+        answers: {
+          A: "Ignoring the problem",
+          B: "Deep breathing exercises",
+          C: "Drinking more coffee"
+        },
+        correct: "B"
+      },
+      {
+        id: "q7",
+        question_text: "What part of the nervous system is activated during stress?",
+        replaced_question_text: "Which part of the nervous system primarily mediates the stress response?",
+        answers: {
+          A: "Parasympathetic nervous system",
+          B: "Sympathetic nervous system",
+          C: "Central nervous system only"
+        },
+        correct: "B"
+      },
+      {
+        id: "q8",
+        question_text: "Which of these is an example of eustress (positive stress)?",
+        replaced_question_text: "Which situation best represents adaptive or positive stress?",
+        answers: {
+          A: "Preparing for an exciting job interview",
+          B: "Losing your wallet",
+          C: "Being stuck in traffic for hours"
+        },
+        correct: "A"
+      },
+      {
+        id: "q9",
+        question_text: "Which lifestyle habit can help manage stress effectively?",
+        replaced_question_text: "Which habit is most likely to contribute to long-term stress regulation?",
+        answers: {
+          A: "Regular physical activity",
+          B: "Skipping meals to save time",
+          C: "Working longer hours"
+        },
+        correct: "A"
+      },
+      {
+        id: "q10",
+        question_text: "What is the first step in managing stress effectively?",
+        replaced_question_text: "What step should occur before applying stress-management techniques?",
+        answers: {
+          A: "Pretend it doesn’t exist",
+          B: "Identify the sources of stress",
+          C: "Take medication immediately"
+        },
+        correct: "B"
+      }
+    ];
+
+    /** ---------------------------
+     *  STRESS PROFILES / OPTIONS
+     *  ---------------------------
+     * All negative actions are randomized by percentage.
+     */
+    const PROFILES = {
+      clean: {
+        timerResetChance: 0.00,
+        delayAnswerChance: 0.00,
+        disclaimerChance: 0.00,
+        replaceTextChance: 0.00,
+        fakeTimeToastChance: 0.00,
+        scrollToTopChance: 0.00,
+        tickAtOrBelowSeconds: 30,
+        delayMsMin: 0, delayMsMax: 0,
+        timerResetMinSec: 300, timerResetMaxSec: 300,
+        toastMinSec: 60, toastMaxSec: 600
+      },
+      light: {
+        timerResetChance: 0.45,
+        delayAnswerChance: 0.35,
+        disclaimerChance: 0.30,
+        replaceTextChance: 0.35,
+        fakeTimeToastChance: 0.35,
+        scrollToTopChance: 0.20,
+        tickAtOrBelowSeconds: 30,
+        delayMsMin: 250, delayMsMax: 1100,
+        timerResetMinSec: 60, timerResetMaxSec: 1300,
+        toastMinSec: 20, toastMaxSec: 420
+      },
+      moderate: {
+        timerResetChance: 0.70,
+        delayAnswerChance: 0.55,
+        disclaimerChance: 0.55,
+        replaceTextChance: 0.60,
+        fakeTimeToastChance: 0.60,
+        scrollToTopChance: 0.40,
+        tickAtOrBelowSeconds: 30,
+        delayMsMin: 1400, delayMsMax: 5600,
+        timerResetMinSec: 60, timerResetMaxSec: 300,
+        toastMinSec: 10, toastMaxSec: 600
+      },
+      extreme: {
+        timerResetChance: 0.92,
+        delayAnswerChance: 0.80,
+        disclaimerChance: 0.95,
+        replaceTextChance: 0.85,
+        fakeTimeToastChance: 0.85,
+        scrollToTopChance: 0.60,
+        tickAtOrBelowSeconds: 30,
+        delayMsMin: 3600, delayMsMax: 8400,
+        timerResetMinSec: 35, timerResetMaxSec: 300,
+        toastMinSec: 5, toastMaxSec: 900
+      }
+    };
+
+    const DISCLAIMER_TEXT = [
+      "NOTICE: By continuing, you acknowledge this assessment may include simulated latency, inconsistent status messaging, and non-editable submissions. Results are for training use only.By accessing, viewing, interacting with, responding to, or otherwise engaging with this questionnaire, assessment, interface, or any associated visual, textual, auditory, or temporal elements thereof (collectively referred to as the “Assessment Experience”), you acknowledge, agree, and affirm that you have read, understood, and accepted the following terms, conditions, clarifications, limitations, exclusions, non-guarantees, and procedural statements, whether or not you actually read them in full. ",
+      "LEGAL: This questionnaire is provided “as is” without warranties. Timing indicators may be approximate. Your interaction may be recorded for performance analysis.By accessing, viewing, interacting with, responding to, or otherwise engaging with this questionnaire, assessment, interface, or any associated visual, textual, auditory, or temporal elements thereof (collectively referred to as the “Assessment Experience”), you acknowledge, agree, and affirm that you have read, understood, and accepted the following terms, conditions, clarifications, limitations, exclusions, non-guarantees, and procedural statements, whether or not you actually read them in full. ",
+      "DISCLAIMER: User interface elements may not function as expected due to test conditions. Do not rely on displayed timers for operational decisions.",
+      "IMPORTANT NOTICE. PLEASE READ CAREFULLY. By accessing, viewing, interacting with, responding to, or otherwise engaging with this questionnaire, assessment, interface, or any associated visual, textual, auditory, or temporal elements thereof (collectively referred to as the “Assessment Experience”), you acknowledge, agree, and affirm that you have read, understood, and accepted the following terms, conditions, clarifications, limitations, exclusions, non-guarantees, and procedural statements, whether or not you actually read them in full. This Assessment Experience is provided solely for informational, educational, demonstrative, training, evaluative, or illustrative purposes. No part of this Assessment Experience shall be construed as advice, instruction, certification, qualification, recommendation, diagnosis, validation, endorsement, guarantee of competence, or representation of performance capability under real-world operational conditions. Timing indicators, progress indicators, completion indicators, status messages, confirmation messages, error indicators, warning messages, feedback symbols, navigational affordances, and any other visual or textual cues presented during the Assessment Experience are approximate, simulated, non-binding, and may not reflect actual system state, elapsed time, remaining time, recorded responses, stored data, evaluation status, or final outcomes. Interface elements, including but not limited to buttons, toggles, navigation controls, editing functions, undo mechanisms, confirmation prompts, submission controls, and progress indicators, may appear interactive, responsive, editable, reversible, actionable, or authoritative, but may not perform any operation, may perform delayed operations, may perform partial operations, or may perform operations unrelated to user expectation. No reliance should be placed on the apparent behavior of any such element. Responses submitted during the Assessment Experience may be recorded, ignored, delayed, overwritten, duplicated, partially processed, inconsistently processed, or not processed at all. The presence or absence of visual confirmation does not imply acceptance, correctness, evaluation, storage, transmission, or rejection of any response. The Assessment Experience may include intentionally induced stressors, cognitive load modifiers, temporal pressure elements, perceptual inconsistencies, contradictory indicators, delayed responses, non-functional controls, misleading feedback, simulated system latency, or other designed conditions intended to evaluate behavior under non-ideal circumstances. Such conditions are deliberate and do not constitute defects, errors, or malfunctions. No warranty, express or implied, is made regarding the accuracy, completeness, reliability, consistency, usability, availability, responsiveness, or suitability of the Assessment Experience for any purpose. The Assessment Experience is provided “as is” and “as available,” without limitation. To the maximum extent permitted by applicable law, the creators, operators, administrators, facilitators, licensors, and affiliates of this Assessment Experience disclaim all liability for any direct, indirect, incidental, consequential, psychological, cognitive, emotional, physiological, operational, or interpretive effects arising from participation, including but not limited to confusion, frustration, stress, annoyance, distraction, misinterpretation, or perceived unfairness. Participation is voluntary. If at any point you choose to discontinue interaction, no action is required, and no explicit exit mechanism is guaranteed to be available or functional. Continued interaction shall be deemed continued acceptance of these terms. This notice may be updated, altered, expanded, reduced, replaced, or contradicted at any time without prior notice. Continued use following such changes constitutes acceptance of the revised notice, regardless of whether such changes are communicated, visible, or internally consistent. If any portion of this notice is determined to be invalid, unenforceable, irrelevant, contradictory, or nonsensical, such determination shall not affect the remaining portions, which shall remain in full force and effect. By proceeding, you confirm that you have sufficient authority, capacity, and discretion to engage in this Assessment Experience and that you do so with full understanding that no outcome, score, completion state, or apparent submission shall be interpreted as final, authoritative, or actionable. "
+    ];
+
+    /** ---------------------------
+     *  STATE
+     *  ---------------------------
+     */
+    let profileKey = "light";
+    let opts = PROFILES[profileKey];
+
+    let visibleTimerSec = 300;         // shown timer only (non-authoritative)
+    let tickIntervalId = null;
+    let timerIntervalId = null;
+    let submissionExpired = false;
+
+    const state = new Map(); // questionId -> { answered: bool, selectedKey: string|null, locked: bool, swapped: bool }
+
+    /** ---------------------------
+     *  UTIL
+     *  ---------------------------
+     */
+    function chance(p) { return Math.random() < p; }
+    function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+    function formatMMSS(sec) {
+      sec = Math.max(0, Math.floor(sec));
+      const m = String(Math.floor(sec / 60)).padStart(2, "0");
+      const s = String(sec % 60).padStart(2, "0");
+      return `${m}:${s}`;
+    }
+    function pick(arr) { return arr[randInt(0, arr.length - 1)]; }
+
+    /** ---------------------------
+     *  AUDIO TICK (WebAudio)
+     *  - iOS requires user gesture; we "arm" it on first tap.
+     *  ---------------------------
+     */
+    let audioCtx = null;
+    let audioArmed = false;
+    function armAudioOnce() {
+      if (audioArmed) return;
+      audioArmed = true;
+      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch { }
+    }
+    function tickSound() {
+      if (!audioCtx) return;
+      const t = audioCtx.currentTime;
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = "square";
+      o.frequency.setValueAtTime(1200, t);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.08, t + 0.002);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+      o.connect(g).connect(audioCtx.destination);
+      o.start(t);
+      o.stop(t + 0.06);
+    }
+
+    /** ---------------------------
+     *  TOAST
+     *  ---------------------------
+     */
+    let toastTimer = null;
+    function showToast(msg) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove("show"), 1600);
+    }
+
+    /** ---------------------------
+     *  PAGE SCROLL TO TOP
+     *  ---------------------------
+     */
+    function maybeScrollToTop(reason = "") {
+      if (!chance(opts.scrollToTopChance)) return;
+
+      // Small delay makes it feel like a layout reflow / validation
+      setTimeout(() => {
+        window.scrollTo({
+          top: 0,
+          behavior: "smooth"
+        });
+      }, randInt(80, 240));
+    }
+
+    /** ---------------------------
+     *  TIMER LOOP (never authoritative)
+     *  ---------------------------
+     */
+    function updateTimerUI() {
+      const timerEl = document.getElementById("timer");
+      const valEl = document.getElementById("timerValue");
+      valEl.textContent = formatMMSS(visibleTimerSec);
+
+      timerEl.classList.remove("low", "verylow");
+      if (visibleTimerSec <= 10) timerEl.classList.add("verylow");
+      else if (visibleTimerSec <= 30) timerEl.classList.add("low");
+    }
+
+    function startTimer() {
+      clearInterval(timerIntervalId);
+      clearInterval(tickIntervalId);
+
+      timerIntervalId = setInterval(() => {
+        visibleTimerSec -= 1;
+        if (visibleTimerSec < 0) {
+          visibleTimerSec = 0; // runout does nothing, just sticks at 0
+          if (!submissionExpired) {
+            submissionExpired = true;
+            submitMeta.textContent = "Submission expired";
+            submitMeta.style.color = "#ff6b6b"; // optional visual stress cue
+          }
+        }
+
+        updateTimerUI();
+      }, 1000);
+
+      tickIntervalId = setInterval(() => {
+        if (visibleTimerSec > 0 && visibleTimerSec <= opts.tickAtOrBelowSeconds) {
+          tickSound();
+        }
+      }, 1000);
+
+      updateTimerUI();
+    }
+
+    function maybeResetVisibleTimer() {
+      if (!chance(opts.timerResetChance)) return;
+      visibleTimerSec = randInt(opts.timerResetMinSec, opts.timerResetMaxSec);
+      updateTimerUI();
+    }
+
+
+    /** ---------------------------
+     *  ERASE STATE
+     *  ---------------------------
+     */
+    function clear_state() {
+      state.clear();
+      submissionExpired = false;
+      submitMeta.textContent = "Not submitted";
+      submitMeta.style.color = "inherit";
+      visibleTimerSec = opts.timerResetMinSec; // reset to something plausible for the profile
+      updateTimerUI();
+    }
+    /** ---------------------------
+     *  RENDER
+     *  ---------------------------
+     */
+    function render() {
+      const host = document.getElementById("questions");
+      host.innerHTML = "";
+
+      for (const q of QUESTION_DATA) {
+        if (!state.has(q.id)) {
+          if (chance(opts.disclaimerChance)) {
+
+            state.set(q.id, {
+              answered: false, selectedKey: null, locked: false, swapped: false,
+              disclaimerText: pick(DISCLAIMER_TEXT),   // ← NEW
+              hasDisclaimer: true    // ← NEW
+
+            });
+
+          } else {
+
+            state.set(q.id, {
+              answered: false, selectedKey: null, locked: false, swapped: false,
+              disclaimerText: null,   // ← NEW
+              hasDisclaimer: false    // ← NEW
+
+            });
+          }
+        }
+        const st = state.get(q.id);
+
+        const card = document.createElement("section");
+        card.className = "q";
+        card.dataset.qid = q.id;
+
+        const header = document.createElement("div");
+        header.className = "qHeader";
+
+        const title = document.createElement("div");
+        title.className = "qTitle";
+        title.textContent = `Question ${QUESTION_DATA.findIndex(x => x.id === q.id) + 1}`;
+
+        const actions = document.createElement("div");
+        actions.className = "qActions";
+
+        const status = document.createElement("div");
+        status.className = "statusPill";
+        status.textContent = st.answered ? "Answered (locked)" : "Not answered";
+        if (st.answered) status.classList.add("answered", "locked");
+
+        // per your spec: once answered, show an edit/undo-ish button that does nothing
+        const editBtn = document.createElement("button");
+        editBtn.className = "btn miniBtn ghost";
+        editBtn.textContent = st.answered ? "Edit / Undo" : " ";
+        editBtn.disabled = !st.answered;
+        editBtn.addEventListener("click", () => {
+          // animate but no action
+          // (no-op)
+        });
+
+        actions.appendChild(editBtn);
+        actions.appendChild(status);
+
+        header.appendChild(title);
+        header.appendChild(actions);
+
+        const qTextWrap = document.createElement("div");
+        qTextWrap.className = "qTextWrap";
+
+        const qText = document.createElement("div");
+        qText.className = "qText fadingIn";
+        qText.textContent = (st.swapped ? q.replaced_question_text : q.question_text);
+
+        qTextWrap.appendChild(qText);
+
+        // Disclaimer insertion below question, above answers, randomized per question (once)
+        let disclaimerEl = null;
+        if (st.hasDisclaimer && st.disclaimerText) {
+          disclaimerEl = document.createElement("div");
+          disclaimerEl.className = "disclaimer";
+          disclaimerEl.textContent = st.disclaimerText;
+        }
+
+        // Answers
+        const answers = document.createElement("div");
+        answers.className = "answers";
+
+        const spinner = document.createElement("span");
+        spinner.className = "spinner";
+        spinner.title = "Processing…";
+
+        // Put spinner in header area subtly
+        actions.insertBefore(spinner, status);
+
+        const name = `ans_${q.id}`;
+
+        Object.entries(q.answers).forEach(([key, label]) => {
+          const row = document.createElement("label");
+          row.className = "answer";
+
+          const input = document.createElement("input");
+          input.type = "radio";
+          input.name = name;
+          input.value = key;
+          input.checked = (st.selectedKey === key);
+
+          const txt = document.createElement("div");
+          txt.className = "txt";
+          txt.textContent = label;
+
+          const x = document.createElement("div");
+          x.className = "x";
+          x.textContent = "✖";
+
+          // lock UI if answered
+          if (st.answered) {
+            input.disabled = true;
+            row.classList.add("locked");
+            if (st.selectedKey === key) row.classList.add("showX"); // show red X next to selected answer
+          }
+
+          row.appendChild(input);
+          row.appendChild(txt);
+          row.appendChild(x);
+
+          input.addEventListener("change", async () => {
+            armAudioOnce(); // allow ticks later
+
+            // If already answered, no edits.
+            if (st.answered) {
+              input.checked = (st.selectedKey === key);
+              return;
+            }
+
+            // Freeze interaction while "accepting"
+            const doDelay = chance(opts.delayAnswerChance);
+            if (doDelay) {
+              spinner.classList.add("on");
+              disableQuestion(card, true);
+              await sleep(randInt(opts.delayMsMin, opts.delayMsMax));
+              disableQuestion(card, false);
+              spinner.classList.remove("on");
+            }
+
+            // Accept answer (single execution)
+            st.answered = true;
+            st.locked = true;
+            st.selectedKey = key;
+
+
+            // Stressor: reset visible timer on every answer (randomized by chance)
+            maybeResetVisibleTimer();
+
+            maybeScrollToTop("questionanswered");
+
+            // Stressor: fake time remaining toast (randomized)
+            if (chance(opts.fakeTimeToastChance)) {
+              const fake = randInt(opts.toastMinSec, opts.toastMaxSec);
+              showToast(`Question recorded. ${formatMMSS(fake)} mins remaining.`);
+            } else {
+              showToast(`Question recorded.`);
+            }
+
+            // Stressor: swap question text after answering with fade (randomized)
+            if (chance(opts.replaceTextChance)) {
+              await fadeSwapQuestionText(qText, q.replaced_question_text);
+              maybeScrollToTop("questiontextswap");
+              st.swapped = true;
+            }
+
+            // Re-render to lock answers and show permanent red X
+            render();
+          });
+
+          answers.appendChild(row);
+        });
+
+        card.appendChild(header);
+        card.appendChild(qTextWrap);
+        if (disclaimerEl) card.appendChild(disclaimerEl);
+        card.appendChild(answers);
+
+        host.appendChild(card);
+      }
+    }
+
+    function disableQuestion(cardEl, disabled) {
+      const inputs = cardEl.querySelectorAll("input[type=radio]");
+      inputs.forEach(i => i.disabled = disabled);
+    }
+
+    function sleep(ms) {
+      return new Promise(res => setTimeout(res, ms));
+    }
+
+    async function fadeSwapQuestionText(qTextEl, newText) {
+      const wrap = qTextEl.closest(".qTextWrap");
+      if (!wrap) return;
+
+      // Step 1: flash background immediately
+      wrap.classList.remove("flash", "flash-strong");
+      wrap.classList.add("flash");
+
+      // Step 2: fade out text
+      qTextEl.classList.add("fadingOut");
+      await sleep(420);
+
+      // Step 3: swap text while invisible
+      qTextEl.textContent = newText;
+
+      // Step 4: fade back in
+      qTextEl.classList.remove("fadingOut");
+      qTextEl.classList.add("fadingIn");
+      await sleep(440);
+      qTextEl.classList.remove("fadingIn");
+
+      // Step 5: ensure flash class is removed
+      setTimeout(() => {
+        wrap.classList.remove("flash", "flash-strong");
+      }, 520);
+    }
+
+    /** ---------------------------
+     *  GLOBAL NO-OP BUTTONS
+     *  ---------------------------
+     */
+    document.getElementById("backBtn").addEventListener("click", () => {
+      armAudioOnce();
+      // Visual animate comes from :active; no action
+      showToast("Back navigation unavailable.");
+      maybeScrollToTop("backbutton");
+    });
+
+    document.getElementById("noopBtn").addEventListener("click", () => {
+      armAudioOnce();
+      showToast("Menu loading…");
+    });
+
+    /** ---------------------------
+     *  PROFILE SELECT
+     *  ---------------------------
+     */
+    document.getElementById("profileSelect").addEventListener("change", (e) => {
+      profileKey = e.target.value;
+      opts = PROFILES[profileKey];
+      showToast(`Profile set: ${profileKey}`);
+      clear_state()
+      render()
+    });
+
+    const submitBtn = document.getElementById("submitBtn");
+    const submitSpinner = document.getElementById("submitSpinner");
+    const submitLabel = document.getElementById("submitLabel");
+    const submitMeta = document.getElementById("submitMeta");
+
+    let submitInProgress = false;
+
+    submitBtn.addEventListener("click", async () => {
+      armAudioOnce();
+
+      if (submitInProgress) return;
+      submitInProgress = true;
+
+      // Optional: show different messages randomly for extra uncertainty
+      const messages = ["Submitting…", "Uploading…", "Syncing…", "Finalizing…"];
+      submitLabel.textContent = messages[Math.floor(Math.random() * messages.length)];
+      submitSpinner.classList.add("on");
+      submitBtn.disabled = true;
+
+      // Spinner for a few seconds; does nothing afterward
+      const ms = randInt(1800, 4200);
+      await sleep(ms);
+
+      submitSpinner.classList.remove("on");
+      submitBtn.disabled = false;
+      submitLabel.textContent = "Submit";
+      const messages_content = ["Not submitted.", "Not submitted. Not all questions answered", "Not submitted. Not all questions answered"];
+      submitMeta.textContent = messages_content[Math.floor(Math.random() * messages_content.length)];;
+      showToast("Submission queued."); // still does nothing
+      submitInProgress = false;
+
+
+      // 🔴 NEW LOGIC
+      if ((true) && (!allQuestionsAnswered())) {
+        submitMeta.textContent = "Not submitted. Not all questions answered";
+        submitMeta.style.color = "#ff6b6b"; // optional stress cue
+        showToast("Submission incomplete.");
+        return;
+      }
+      // If all questions ARE answered (still a no-op submission)
+      if (submissionExpired) {
+        submitMeta.textContent = "Submission expired";
+      }
+    });
+
+    function applyProfileFromSelect() {
+      const sel = document.getElementById("profileSelect");
+      profileKey = sel.value;
+      opts = PROFILES[profileKey];
+    }
+
+    function allQuestionsAnswered() {
+      for (const q of QUESTION_DATA) {
+        const st = state.get(q.id);
+        if (!st || !st.answered) return false;
+      }
+      return true;
+    }
+    /** ---------------------------
+     *  INIT
+     *  ---------------------------
+     */
+    applyProfileFromSelect();
+    render();
+    startTimer();
+  </script>
+</body>
+
+</html>
